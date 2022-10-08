@@ -1,8 +1,9 @@
 import copy
 import random
+from heapq import nlargest
 
 
-def choice_model(r, k, recommendations, availabilities, option):  # options: 'top_k', 'random', 'utility'
+def choice_model(r, k, recommendations, availabilities, option, util):  # options: 'top_k', 'random', 'utility'
     s = copy.deepcopy(r)
 
     for user in s.keys():
@@ -10,6 +11,11 @@ def choice_model(r, k, recommendations, availabilities, option):  # options: 'to
             s[user] = s[user][0:k]
         elif option == 'random':
             s[user] = random.sample(s[user], k=k)
+        elif option == 'utility':
+            keys = s[user]
+            items_by_util = {key: util[key][user] for key in keys}
+            res = nlargest(k, items_by_util, key=items_by_util.get)
+            s[user] = res
         else:
             print('no choice')
 

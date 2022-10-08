@@ -30,8 +30,9 @@ def utility_initialise(users, users_d, knn, items):
             # normalise scores
             s_min = min(score)
             s_max = max(score)
-            for s in range(len(score)):
-                score[s] = (score[s] - s_min) / (s_max - s_min)
+            if s_min != s_max:
+                for s in range(len(score)):
+                    score[s] = (score[s] - s_min) / (s_max - s_min)
 
             item_score = {}
 

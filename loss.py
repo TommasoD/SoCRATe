@@ -4,21 +4,23 @@ def loss_computation(r, opt_r_hat, users_list, prices, utility_matrix):
     users_loss = {key: list(value) for key in keys}
 
     for user in users_list:
-        # for on all objective functions only based on item
+        # for all objective functions only based on item
         loss_obj1 = 0
-        for i in range(len(r[user])):
-            r_item = r[user][i]
-            opt_item = opt_r_hat[user][i]
-            loss_obj1 += cut_above_zero(prices[opt_item] - prices[r_item])
+        if user in list(r.keys()):
+            for i in range(len(r[user])):
+                r_item = r[user][i]
+                opt_item = opt_r_hat[user][i]
+                loss_obj1 += cut_above_zero(prices[opt_item] - prices[r_item])
         users_loss[user].append(loss_obj1)
 
     for user in users_list:
-        # for on all objective functions based on item and users
+        # for all objective functions based on item and users
         loss_obj2 = 0
-        for i in range(len(r[user])):
-            r_item = r[user][i]
-            opt_item = opt_r_hat[user][i]
-            loss_obj2 += cut_above_zero(utility_matrix[opt_item][user] - utility_matrix[r_item][user])
+        if user in list(r.keys()):
+            for i in range(len(r[user])):
+                r_item = r[user][i]
+                opt_item = opt_r_hat[user][i]
+                loss_obj2 += cut_above_zero(utility_matrix[opt_item][user] - utility_matrix[r_item][user])
         users_loss[user].append(loss_obj2)
 
     return users_loss

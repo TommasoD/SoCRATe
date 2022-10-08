@@ -1,43 +1,44 @@
 import copy
 
 
-def update_weights(weights, S, R, optR_hat, prices, utility_matrix, beta, gamma, delta, N):
+def update_weights(weights, s, r, optR_hat, prices, utility_matrix, beta, gamma, delta, n):
     old_weights = copy.deepcopy(weights)
 
     for u in weights:
-        for item in S[u]:
-            coefficient = beta / len(S[u])
-            # for j in len(prices) do weight update
-            update = coefficient * (prices[item] - old_weights[u][0])
-            weights[u][0] += update
-
-            update = coefficient * (utility_matrix[item][u] - old_weights[u][1])
-            weights[u][1] += update
-
-        # for j in len(prices) do weight update
-        w_diff = weights[u][0] - old_weights[u][0]
-        opt_sum = sum([prices[i] for i in optR_hat[u]])
-        r_sum = sum([prices[i] for i in R[u]])
-        abs_diff = abs((opt_sum - r_sum) / N)
-        weights[u][0] = old_weights[u][0] + (w_diff * gamma * (1 - abs_diff))
-
-        w_diff = weights[u][1] - old_weights[u][1]
-        opt_sum = sum([utility_matrix[i][u] for i in optR_hat[u]])
-        r_sum = sum([utility_matrix[i][u] for i in R[u]])
-        abs_diff = abs((opt_sum - r_sum) / N)
-        weights[u][1] = old_weights[u][1] + (w_diff * gamma * (1 - abs_diff))
-
-        for idx, item in enumerate(R[u]):
-            if item not in S[u]:
-                coefficient = ((N - idx) / N) * (delta / (N - len(S)))
+        if u in list(r.keys()):
+            for item in s[u]:
+                coefficient = beta / len(s[u])
                 # for j in len(prices) do weight update
-                weights[u][0] -= coefficient * (prices[item] - old_weights[u][0])
-                weights[u][1] -= coefficient * (utility_matrix[item][u] - old_weights[u][1])
+                update = coefficient * (prices[item] - old_weights[u][0])
+                weights[u][0] += update
 
-        # sum of weights must be 1
-        sum_of_weights = weights[u][0] + weights[u][1]
-        weights[u][0] = weights[u][0] / sum_of_weights
-        weights[u][1] = weights[u][1] / sum_of_weights
+                update = coefficient * (utility_matrix[item][u] - old_weights[u][1])
+                weights[u][1] += update
+
+            # for j in len(prices) do weight update
+            w_diff = weights[u][0] - old_weights[u][0]
+            opt_sum = sum([prices[i] for i in optR_hat[u]])
+            r_sum = sum([prices[i] for i in r[u]])
+            abs_diff = abs((opt_sum - r_sum) / n)
+            weights[u][0] = old_weights[u][0] + (w_diff * gamma * (1 - abs_diff))
+
+            w_diff = weights[u][1] - old_weights[u][1]
+            opt_sum = sum([utility_matrix[i][u] for i in optR_hat[u]])
+            r_sum = sum([utility_matrix[i][u] for i in r[u]])
+            abs_diff = abs((opt_sum - r_sum) / n)
+            weights[u][1] = old_weights[u][1] + (w_diff * gamma * (1 - abs_diff))
+
+            for idx, item in enumerate(r[u]):
+                if item not in s[u]:
+                    coefficient = ((n - idx) / n) * (delta / (n - len(s)))
+                    # for j in len(prices) do weight update
+                    weights[u][0] -= coefficient * (prices[item] - old_weights[u][0])
+                    weights[u][1] -= coefficient * (utility_matrix[item][u] - old_weights[u][1])
+
+            # sum of weights must be 1
+            sum_of_weights = weights[u][0] + weights[u][1]
+            weights[u][0] = weights[u][0] / sum_of_weights
+            weights[u][1] = weights[u][1] / sum_of_weights
 
     return weights
 
