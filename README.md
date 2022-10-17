@@ -28,3 +28,9 @@ The system also saves basic plots on the performance, showing loss and cumulativ
 The system computes the optimal user recommendations, the utility matrix and the other objective functions at the beginning of the execution. This initialisation process can take some time, and depending on the dataset the output files may be too large to be uploaded on GitHub.
 The first time, you can compute them directly in the system, by uncommenting lines 104-109. Resulting files are automatically saved under the folder `obj_functions`.  
 Files for the synthetic and the *Task Recommendation* datasets are provided.
+
+## References
+BibTeX will be added in the future.
+
+## Contacts
+Please feel free to contact us for any question at <tommaso.dolci@polimi.it>
