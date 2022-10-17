@@ -31,7 +31,7 @@ OptR_hat = {}
 mean_availability = 10
 assignment_strategy = 'user'  # options: 'item', 'user'
 choice_model_option = 'top_k'  # options: 'top_k', 'random', 'utility'
-sorting_option = 'historical'  # options: 'no_sort', 'random', 'loss', 'historical'
+sorting_option = 'no_sort'  # options: 'no_sort', 'random', 'loss', 'historical'
 time_granularity = 'group'  # options: 'fixed', 'group'
 print("Choice model option: " + choice_model_option)
 print("Sorting strategy: " + sorting_option)
@@ -57,7 +57,7 @@ elif dataset_abbr == "az-movie":
 elif dataset_abbr == "crowd":
     data_file_path = 'datasets/reviewsCrowdsourcing.csv'
     metadata_file_path = 'datasets/metadataCrowdsourcing.csv'
-    M = 150
+    M = 200
     mean_availability = 5  # optimal value for T=15
 
 # SYSTEM LOGIC STARTS FROM HERE
