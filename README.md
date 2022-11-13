@@ -30,7 +30,17 @@ The first time, you can compute them directly in the system, by uncommenting lin
 Files for the synthetic and the *Task Recommendation* datasets are provided.
 
 ## References
-BibTeX will be added in the future.
+If you find this work useful, please consider citing it:
+```
+@inproceedings{azzalini2022cikm,
+  author = {Azzalini, Davide and Azzalini, Fabio and Criscuolo, Chiara and Dolci, Tommaso and Martinenghi, Davide and Amer-Yahia, Sihem},
+  title = {So{CRAT}e: A Recommendation System with Limited-Availability Items},
+  year = {2022},
+  publisher = {ACM},
+  booktitle = {Proceedings of the 31st ACM International Conference on Information and Knowledge Management},
+  pages = {4793–4797}
+}
+```
 
 ## Contacts
 Please feel free to contact us for any question at <tommaso.dolci@polimi.it>
