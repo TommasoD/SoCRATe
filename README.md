@@ -1,7 +1,7 @@
 # SoCRATe
 D. Azzalini, F. Azzalini, C. Criscuolo, T. Dolci, D. Martinenghi and S. Amer-Yahia  
 *SoCRATe: A Recommendation System with Limited-Availability Items*  
-Accepted for publication at [CIKM 2022](https://www.cikm2022.org/).
+Published at [CIKM 2022](https://www.cikm2022.org/).
 
 Try out the UI of the SoCRATe available at this link: https://github.com/chiaracriscuolo/SoCRATe-UI
 
