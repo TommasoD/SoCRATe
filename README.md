@@ -4,6 +4,7 @@ D. Azzalini, F. Azzalini, C. Criscuolo, T. Dolci, D. Martinenghi and S. Amer-Yah
 Published at [CIKM 2022](https://www.cikm2022.org/).
 
 Try out the UI of the SoCRATe available at this link: https://github.com/chiaracriscuolo/SoCRATe-UI
+An updated version of the code of SoCRATe - consistent with our VLDB EA&B sumbission - is available at this link: https://github.com/chiaracriscuolo/SoCRATe
 
 ## Abstract
 We demonstrate SoCRATe, an online system dedicated to providing adaptive recommendations to users when items have limited availability. SoCRATe is relevant to several real-world applications, among which movie and task recommendations. SoCRATe has several appealing features: (i) watching users as they consume recommendations and accounting for user feedback in refining recommendations in the next round; (ii) implementing loss compensation strategies to make up for sub-optimal recommendations, in terms of accuracy, when items have limited availability; (iii) deciding when to re-generate recommendations on a need-based fashion. SoCRATe accommodates real users as well as simulated users to enable testing multiple recommendation choice models. To frame evaluation, SoCRATe introduces a new set of measures that capture recommendation accuracy, user satisfaction and item consumption over time. All these features make SoCRATe unique and able to adapt recommendations to user preferences in a resource-limited setting.
