@@ -30,7 +30,7 @@ def update_weights(weights, s, r, optR_hat, prices, utility_matrix, beta, gamma,
 
             for idx, item in enumerate(r[u]):
                 if item not in s[u]:
-                    coefficient = ((n - idx) / n) * (delta / (n - len(s)))
+                    coefficient = ((n - idx) / n) * (delta / (n - len(s[u])))
                     # for j in len(prices) do weight update
                     weights[u][0] -= coefficient * (prices[item] - old_weights[u][0])
                     weights[u][1] -= coefficient * (utility_matrix[item][u] - old_weights[u][1])

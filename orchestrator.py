@@ -1,23 +1,53 @@
+import math
+import sys
+import time
 import numpy as np
 import pandas as pd
 import json
+import argparse
 
 # Parameters
 from assignment import item_assignment
 from choice_model import choice_model
-from initialisation import normal_initialise_availability, utility_initialise
+from initialisation import initialise_availability
 from loss import top_n, loss_computation, top_n_availabilities, update_hist_loss
-from objectives_initialise import price_initialise
-from plot import plot_system
+from plot import plot_system, oracle_plot, distribution_plot
 from rerank import re_rank
-from synthetic_ds import create_synthetic_data, synthetic_utility, synthetic_recs, synthetic_price
+from synthetic_ds import create_synthetic_data, synthetic_utility, synthetic_recs, synthetic_price, synthetic_recs_pl, \
+    synthetic_utility_pl
 from user_sorting import user_sorting
 from weights import update_weights
-from utils import write_to_file, preprocessing, train_recommender, get_recommendations
+from utils import write_to_file, preprocessing, train_recommender, convert, intersection
 
-T = 15  # number of iterations of SoCRATe
+parser = argparse.ArgumentParser(description='Orchestrator')
+
+parser.add_argument("--n_users", type=int, default=4)
+parser.add_argument("--availability", type=int, default=1)
+parser.add_argument("--iterations", type=int, default=15)
+parser.add_argument("--m", type=int, default=20)
+parser.add_argument("--compensation", type=str, default='round_robin', choices=['round_robin', 'pref_driven'])
+parser.add_argument("--adoption", type=str, default='top_k', choices=['top_k', 'random', 'utility'])
+parser.add_argument("--sorting", type=str, default='historical', choices=['no_sort', 'random', 'loss', 'historical'])
+parser.add_argument("--granularity", type=str, default='fix', choices=['fix', 'group'])
+parser.add_argument("--dataset", type=str, default='synth', choices=['az-music', 'az-movie', 'crowd', 'synth'])
+parser.add_argument("--power_law", type=bool, default=False)
+parser.add_argument("--log", type=bool, default=False)
+
+params, _ = parser.parse_known_args()
+
+N_USERS = params.n_users
+mean_availability = params.availability  # average availability across items
+assignment_strategy = "item" if params.compensation == "round_robin" else "user"  # compensation strategy adopted
+choice_model_option = params.adoption  # choice model adopted
+sorting_option = params.sorting  # sorting option adopted
+time_granularity = params.granularity  # time granularity under analysis
+dataset_abbr = params.dataset  # dataset in use
+power_law = params.power_law  # type of preferences: same for all or realistic
+logging = params.log
+
+T = params.iterations  # number of iterations of SoCRATe
+M = params.m  # number of items returned by the single-user recommender (does only change performance of the system)
 N = 5  # number of items recommended to the user
-M = 150  # number of items returned by the single-user recommender (does only change performance of the system)
 K = 3  # number of adopted items
 alpha_1 = 0.5  # weight of objective functions item-dependant
 alpha_2 = 0.5  # weight of utility
@@ -27,19 +57,21 @@ delta = 0.1  # parameter for weight update
 R = {}
 OptR_hat = {}
 
-# General Options
-mean_availability = 10
-assignment_strategy = 'user'  # options: 'item', 'user'
-choice_model_option = 'top_k'  # options: 'top_k', 'random', 'utility'
-sorting_option = 'no_sort'  # options: 'no_sort', 'random', 'loss', 'historical'
-time_granularity = 'group'  # options: 'fixed', 'group'
-print("Choice model option: " + choice_model_option)
-print("Sorting strategy: " + sorting_option)
-print("Assignment strategy: " + assignment_strategy)
-print("Time granularity: " + time_granularity)
+start_time = time.time()
 
-# Dataset (DEFINE IT HERE)
-dataset_abbr = 'crowd'  # Dataset options: az-music, az-movie, crowd, synth
+folder = "./oracle/orchestrator-"
+filename = str(N_USERS) + "u-" + str(T) + "iter-" + str(mean_availability) + "av-1000000r-" + \
+           assignment_strategy + "-" + choice_model_option + "-" + time_granularity
+if power_law:
+    filename = filename + "-PL"
+if logging:
+    log = open(folder + filename + ".log", "a")
+    sys.stdout = log
+
+MIN_ITEMS = N_USERS * (K * (T - 1) + N)  # minimum amount of items necessary
+N_ITEMS = math.ceil(2 * MIN_ITEMS / mean_availability)  # number of items in the system
+
+print(params)
 data_file_path = ''
 metadata_file_path = ''
 
@@ -66,6 +98,9 @@ test_name = "T{}-A{}-C{}-S{}".format(T, assignment_strategy, choice_model_option
 if dataset_abbr == 'synth':
     test_name = 'synth-' + test_name
     print("Dataset: synthetic")
+    if power_law:
+        print("Power Law: activated")
+        test_name = test_name + "-PL"
 else:
     test_name = dataset_abbr + '-' + test_name
     print("Dataset: " + dataset_abbr)
@@ -74,10 +109,14 @@ if time_granularity == "group":
     test_name = 'group-' + test_name
 
 if dataset_abbr == 'synth':  # use synthetic dataset
-    items, users = create_synthetic_data(n_items=1500, n_users=100)
+    items, users = create_synthetic_data(n_items=N_ITEMS, n_users=N_USERS, max_items=2 * N_ITEMS)
     objective_functions_on_item = synthetic_price(items)
-    recommendations = synthetic_recs(items, users)
-    utility_matrix = synthetic_utility(recommendations, items, users)
+    if power_law:
+        utility_matrix, utility_by_user = synthetic_utility_pl(items, users)
+        recommendations = synthetic_recs_pl(utility_by_user, users)
+    else:
+        recommendations = synthetic_recs(items, users)
+        utility_matrix = synthetic_utility(recommendations, items, users)
     write_to_file(recommendations, "obj_functions/recommendations_synth.json")
     write_to_file(objective_functions_on_item, "obj_functions/objectives_synth.json")
     write_to_file(utility_matrix, "obj_functions/utility_matrix_synth.json")
@@ -116,9 +155,15 @@ length = len(users)
 plot_users = [users[0], users[length // 3], users[length // 3 * 2], users[length - 1]]
 
 # Separate users into groups for user-group time granularity
-# In a real-case scenario users are split according to their history (more tasks = faster consumer)
-user_groups = [users[:length // 3], users[length // 3:length // 3 * 2], users[length // 3 * 2:]]
-group_order = [0, 1, 2, 0, 1, 0, 0, 1, 2, 0, 1, 0, 0, 2, 1]
+# In a real-case scenario users can be split according to their history (more tasks done = faster consumer)
+user_group_fast = users[:math.floor(length / 3)]
+user_group_medium = users[:math.floor(length / 3 * 2)]
+user_groups = [users, user_group_medium, user_group_fast]
+# all users 3 times, fast+medium 7 times, fast users 15 times
+group_order = [2, 1, 2, 0, 2, 1, 2, 0, 2, 1, 2, 0, 2, 1, 2]
+if time_granularity == 'group':
+    print(user_groups)
+    print("\n")
 
 # Initialise weights + loss
 keys = users
@@ -133,15 +178,18 @@ folder_name = "system_output/" + test_name + "/"
 
 # Assign availability to each item
 availabilities = dict(zip(items, np.zeros(len(items), dtype=int)))
-normal_initialise_availability(availabilities, mean_availability)
+initialise_availability(availabilities, mean_availability)
+# normal_initialise_availability(availabilities, mean_availability)
 write_to_file(availabilities, folder_name + "availabilities0.json")
 write_to_file(weights, folder_name + "weights0.json")
 
 # --------- ITERATIONS START ---------
 
+s_mean = []
+s_std = []
+
 for t in range(0, T):
-    print('Starting iteration',
-          t + 1)  # for each iteration except the first one, execute choice model and weight update
+    print('Iteration', t + 1)  # for each iteration except the first one, execute choice model and weight update
     if t:
         # Compute adopted items
         S = choice_model(R, K, recommendations, availabilities, choice_model_option, utility_matrix)
@@ -171,7 +219,7 @@ for t in range(0, T):
         R = item_assignment(availabilities, OptR, user_groups[g], N, assignment_strategy)
         OptR_hat = top_n(OptR, N)  # get top N from OptR (function is defined in loss.py)
         losses = loss_computation(R, OptR_hat, users, objective_functions_on_item, utility_matrix)
-    else:
+    else:  # fixed time granularity
         OptR = re_rank(top_m_recommendations, users, weights, objective_functions_on_item, utility_matrix)
         write_to_file(OptR, folder_name + "OptR" + str(t) + ".json")
 
@@ -184,8 +232,62 @@ for t in range(0, T):
         losses = loss_computation(R, OptR_hat, users, objective_functions_on_item, utility_matrix)
 
     historical_loss = update_hist_loss(historical_loss, losses, weights)
+    s_std.append(np.std(list(historical_loss.values())))
+    s_mean.append(np.mean(list(historical_loss.values())))
     write_to_file(losses, folder_name + "losses" + str(t) + ".json")
     write_to_file(historical_loss, folder_name + "hist_loss" + str(t) + ".json")
 
 # Save plot analysis
-plot_system(T, plot_users, utility_matrix, objective_functions_on_item, test_name)
+# plot_system(T, plot_users, utility_matrix, objective_functions_on_item, test_name)
+
+# Print mean and standard deviation
+print('\nVector of std_dev: ', ["{:.5f}".format(i) for i in s_std])
+print('Average std_dev SoCRATe: {:.5f}'.format(np.mean(s_std)))
+print('Deviation std_dev SoCRATe: {:.5f}'.format(np.std(s_std)))
+
+print('\nVector of means: ', ["{:.5f}".format(i) for i in s_mean])
+print('Average mean SoCRATe: {:.5f}'.format(np.mean(s_mean)))
+print('Deviation mean SoCRATe: {:.5f}'.format(np.std(s_mean)))
+
+# Save diagrams
+# try:
+#     path = "./oracle/oracle-" + str(N_USERS) + "u-" + str(T) + "iter-" + str(mean_availability) + "av-1000000r-" + \
+#            assignment_strategy + "-" + choice_model_option + "-" + time_granularity
+#     title = str(N_USERS) + "u-" + str(T) + "iter-" + str(mean_availability) + "av-1000000r-" + assignment_strategy + \
+#             "-" + choice_model_option + "-" + time_granularity
+#     if power_law:
+#         path = path + "-PL"
+#         title = title + "-PL"
+#     path_std = path + "-std_dev.json"
+#     path_mean = path + "-mean.json"
+#     print("\nFile path: ", path)
+#     oracle_plot(path_std, title, np.mean(s_std))
+#     distribution_plot(path_std, title, np.mean(s_std), 'Average Std-Dev')
+#     # distribution_plot(path_mean, title, np.mean(s_mean), 'Average Mean')
+#
+#     if logging:
+#         # load oracle runs
+#         with open(path_std) as json_file:
+#             std_oracle = json.load(json_file)
+#         with open(path_mean) as json_file:
+#             mean_oracle = json.load(json_file)
+#
+#         support1 = list(np.mean([el for el in sublist]) for sublist in mean_oracle)
+#         support2 = list(np.std([el for el in sublist]) for sublist in mean_oracle)
+#         support3 = list(np.mean([el for el in sublist]) for sublist in std_oracle)
+#         support4 = list(np.std([el for el in sublist]) for sublist in std_oracle)
+#
+#         print('\n---AVERAGE OF MEANS---\nMinimum: ', min(support1), 'Maximum: ', max(support1), 'Mean: ',
+#               np.mean(support1))
+#         print('---STD_DEV OF MEANS---\nMinimum: ', min(support2), 'Maximum: ', max(support2), 'Mean: ',
+#               np.mean(support2))
+#         print('\n---AVERAGE OF STD_DEV---\nMinimum: ', min(support3), 'Maximum: ', max(support3), 'Mean: ',
+#               np.mean(support3))
+#         print('---STD_DEV OF STD_DEV---\nMinimum: ', min(support4), 'Maximum: ', max(support4), 'Mean: ',
+#               np.mean(support4))
+#
+# except FileNotFoundError:
+#     print("No oracle experiment found.")
+
+seconds = (time.time() - start_time)
+print("\n---EXECUTION TIME: %s ---" % convert(seconds))

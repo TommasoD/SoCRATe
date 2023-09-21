@@ -100,3 +100,19 @@ def safe_open_w(path):
 def write_to_file(input_f, path):
     with safe_open_w(path) as write_file:
         json.dump(input_f, write_file)
+
+
+# Convert seconds in format h:min:sec
+def convert(sec):
+    sec = sec % (24 * 3600)
+    hour = sec // 3600
+    sec %= 3600
+    minutes = sec // 60
+    sec %= 60
+    return "%d:%02d:%02d" % (hour, minutes, sec)
+
+
+def intersection(lst1, lst2):
+    lst3 = [values for values in lst1 if values in lst2]
+    return lst3
+

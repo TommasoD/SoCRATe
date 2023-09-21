@@ -2,12 +2,62 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import json
+from scipy.stats import beta
+
+
+def distribution_plot(filename, title, socrate, label):
+    print("\nOpening file...")
+    with open(filename) as json_file:
+        std_s = json.load(json_file)
+    print("Computing average...")
+    avg_std_s = [np.mean(run) for run in std_s]
+    print("Fitting...")
+    a, b, loc, scale = beta.fit(avg_std_s)
+    x_fit = np.linspace(min(avg_std_s), max(avg_std_s), 100)
+    samples_fit = beta.pdf(x_fit, a, b, loc=loc, scale=scale)
+
+    right_area = 1 - beta.cdf(socrate, a, b, loc=loc, scale=scale)
+    if right_area == 1:
+        right_area = 0.9999999
+    print("Percentage of oracle instances worse than SoCRATe: {:.3f}%".format(right_area*100))
+    print("Parameters - a: ", a, "b: ", b, "loc: ", loc, "scale: ", scale)
+
+    plt.figure(figsize=(10, 7))
+    plt.hist(avg_std_s, bins=80, density=True)
+    plt.plot(x_fit, samples_fit, c='b')
+    plt.axvline(x=socrate, c='r', label="SoCRATe: {:.3f}%".format(right_area*100))
+    plt.legend(loc="upper right")
+    plt.xlabel(label)
+    plt.ylabel('Density')
+    # plt.title('Oracle Distribution - ' + title)
+    title = title + "-" + label
+    plt.savefig("oracle/distribution-{}.pdf".format(title), bbox_inches='tight')
+    # plt.show()
+
+
+def oracle_plot(folder, title, socrate):
+    print("Saving oracle plot...")
+    with open(folder) as f:
+        z = json.load(f)
+    w = [np.mean(m) for m in z]
+
+    plt.figure(figsize=(10, 7))
+    plt.hist(w, 80)
+    plt.axvline(x=socrate, c='green', label='Socrate')
+    plt.axvline(x=min(w), c='red', label='Min Oracle')
+    plt.axvline(x=max(w), c='blue', label='Max Oracle')
+    plt.axvline(x=np.mean(w), c='Yellow', label='Mean Oracle')
+    plt.xlabel('Average Standard Deviation')
+    plt.ylabel('Number of Runs')
+    # plt.title('Average Standard Deviation Historical Loss - ' + title)
+    plt.grid(False)
+    plt.legend(loc='upper right')
+    plt.savefig("oracle/plot-{}.pdf".format(title), bbox_inches='tight')
+    # plt.show()
 
 
 def plot_system(t, users, utility, price, name):
-
     print("Plotting...")
-
     matplotlib.rc('xtick', labelsize=16)
     matplotlib.rc('ytick', labelsize=16)
 
@@ -125,3 +175,4 @@ def plot_system(t, users, utility, price, name):
 
     fig.tight_layout()
     plt.savefig("plots/plot-{}.pdf".format(name))
+    # plt.show()

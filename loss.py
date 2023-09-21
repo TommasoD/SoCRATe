@@ -48,13 +48,13 @@ def top_n(old_dict, n):
     return new_dict
 
 
-def top_n_availabilities(old_dict, n, availabilities):
+def top_n_availabilities(old_dict, m, availabilities):
     keys = old_dict.keys()
     value = []
     new_dict = {key: list(value) for key in keys}
     for u in old_dict:
         i = 0
-        while len(new_dict[u]) < n:
+        while len(new_dict[u]) < m:
             item_id = old_dict[u][i]
             if availabilities[item_id] > 0:
                 new_dict[u].append(item_id)
