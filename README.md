@@ -4,7 +4,6 @@ D. Azzalini, F. Azzalini, C. Criscuolo, T. Dolci, D. Martinenghi and S. Amer-Yah
 Published at [CIKM 2022](https://www.cikm2022.org/).
 
 Try out the UI of the SoCRATe available at this link: https://github.com/chiaracriscuolo/SoCRATe-UI
-An updated version of the code of SoCRATe is available at this link: https://github.com/chiaracriscuolo/SoCRATe
 
 ## Abstract
 We demonstrate SoCRATe, an online system dedicated to providing adaptive recommendations to users when items have limited availability. SoCRATe is relevant to several real-world applications, among which movie and task recommendations. SoCRATe has several appealing features: (i) watching users as they consume recommendations and accounting for user feedback in refining recommendations in the next round; (ii) implementing loss compensation strategies to make up for sub-optimal recommendations, in terms of accuracy, when items have limited availability; (iii) deciding when to re-generate recommendations on a need-based fashion. SoCRATe accommodates real users as well as simulated users to enable testing multiple recommendation choice models. To frame evaluation, SoCRATe introduces a new set of measures that capture recommendation accuracy, user satisfaction and item consumption over time. All these features make SoCRATe unique and able to adapt recommendations to user preferences in a resource-limited setting.
@@ -18,10 +17,11 @@ The desired dataset can be specified at line 42.
 The user can select different options for the simulation. Among them:
 - `choice_model_option` can be `top_k` (rank-based), `random`, `utility` (utility-based);
 - `sorting_option` can be `no_sort` (baseline option), `random`, `loss`, `historical` (default value);
-- `compensation_strategy` can be `item` (round-robin), `user` (preference-drive);
-- `time-granularity` can be `fixed` (default value), `group` (user-group).
+- `compensation_strategy` can be `round_robin`, `pref_driven`;
+- `time-granularity` can be `fixed` (default value), `group` (user-group);
+- `dataset` can be `synth` (synthetic), `az-music`, `az-movie`, `crowd`.
 
-Additionally, the user can select the mean number of availability for the items in the simulation, the number of system iterations and more.  
+Additionally, for the synthetic dataset users can select the mean number of availability for the items in the simulation, the number of system iterations and more.  
 Simulation output is saved in `system_output` under a folder named after the chosen simulation options (e.g., T15-Aitem-Crandom-Shistorical for a 15 iterations simulation, with assignment of items according to round-robin compensation strategy (`item`), choice model `random`, sorting option `historical`).  
 The system also saves basic plots on the performance, showing loss and cumulative loss for certain specific users, under the `plots` folder.
 
